@@ -48,20 +48,15 @@ func api10Get(d *Daemon, r *http.Request) response.Response {
 		AuthMethods:   []string{api.AuthenticationMethodTLS},
 	}
 
-	uname, err := shared.Uname()
-	if err != nil {
-		return response.InternalError(err)
-	}
-
 	serverName, err := os.Hostname()
 	if err != nil {
 		return response.SmartError(err)
 	}
 
 	env := api.ServerEnvironment{
-		Kernel:             uname.Sysname,
-		KernelArchitecture: uname.Machine,
-		KernelVersion:      uname.Release,
+		Kernel:             "FreeBSD",
+		KernelArchitecture: "amd64",
+		KernelVersion:      "15.0-CURRENT",
 		Server:             "lxd-agent",
 		ServerPid:          os.Getpid(),
 		ServerVersion:      version.Version,

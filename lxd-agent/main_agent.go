@@ -17,7 +17,6 @@ import (
 
 	"github.com/canonical/lxd/lxd/instance/instancetype"
 	"github.com/canonical/lxd/lxd/storage/filesystem"
-	"github.com/canonical/lxd/lxd/util"
 	"github.com/canonical/lxd/shared"
 	"github.com/canonical/lxd/shared/logger"
 )
@@ -48,12 +47,14 @@ func (c *cmdAgent) Command() *cobra.Command {
 
 // Run executes the agent command.
 func (c *cmdAgent) Run(cmd *cobra.Command, args []string) error {
+	fmt.Println("RUN")
 	// Setup logger.
-	err := logger.InitLogger("", "lxd-agent", c.global.flagLogVerbose, c.global.flagLogDebug, nil)
-	if err != nil {
-		// Ensure we exit with a non-zero exit code.
-		os.Exit(1) //nolint:revive
-	}
+	//err := logger.InitLogger("/tmp/lxd-agent.log", "lxd-agent", c.global.flagLogVerbose, c.global.flagLogDebug, nil)
+	//if err != nil {
+	// Ensure we exit with a non-zero exit code.
+	//	fmt.Println("LOGGER INIT FAILED")
+	//	os.Exit(1) //nolint:revive
+	//}
 
 	logger.Info("Starting")
 	defer logger.Info("Stopped")
@@ -115,17 +116,17 @@ func (c *cmdAgent) Run(cmd *cobra.Command, args []string) error {
 
 	// Load the kernel driver.
 	logger.Info("Loading vsock module")
-	err = util.LoadModule("vsock")
+	err = nil
 	if err != nil {
 		return fmt.Errorf("Unable to load the vsock kernel module: %w", err)
 	}
 
 	// Wait for vsock device to appear.
-	for i := 0; i < 5; i++ {
-		if !shared.PathExists("/dev/vsock") {
-			time.Sleep(1 * time.Second)
-		}
-	}
+	//for i := 0; i < 5; i++ {
+	//	if !shared.PathExists("/dev/vsock") {
+	//		time.Sleep(1 * time.Second)
+	//	}
+	//}
 
 	// Mount shares from host.
 	c.mountHostShares()
@@ -241,9 +242,21 @@ func (c *cmdAgent) startStatusNotifier(ctx context.Context, chConnected <-chan s
 
 // writeStatus writes a status code to the vserial ring buffer used to detect agent status on host.
 func (c *cmdAgent) writeStatus(status string) error {
-	if shared.PathExists("/dev/virtio-ports/com.canonical.lxd") {
-		vSerial, err := os.OpenFile("/dev/virtio-ports/com.canonical.lxd", os.O_RDWR, 0600)
+	if shared.PathExists("/dev/vtcon/com.canonical.lxd") {
+		vSerial, err := os.OpenFile("/dev/vtcon/com.canonical.lxd", os.O_RDWR, 0600)
 		if err != nil {
+			return err
+		}
+
+		termios, err := unix.IoctlGetTermios(int(vSerial.Fd()), 0x402c7413)
+		if err != nil {
+			fmt.Println("GET TERMIOS FAILED")
+			return err
+		}
+		termios.Oflag = 0
+		err = unix.IoctlSetTermios(int(vSerial.Fd()), 0x802c7414, termios)
+		if err != nil {
+			fmt.Println("SET TERMIOS FAILED")
 			return err
 		}
 

@@ -2,6 +2,12 @@ module github.com/canonical/lxd
 
 go 1.22.4
 
+replace (
+    github.com/mdlayher/socket => /home/danilo/Sources/socket_go
+    github.com/mdlayher/vsock => /home/danilo/Sources/vsock_go
+    golang.org/x/sys => /home/danilo/Sources/go_x_sys
+)
+
 require (
 	github.com/Rican7/retry v0.3.1
 	github.com/armon/go-proxyproto v0.1.0

@@ -18,6 +18,7 @@ type cmdGlobal struct {
 }
 
 func main() {
+	fmt.Println("MAIN")
 	// agent command (main)
 	agentCmd := cmdAgent{}
 	app := agentCmd.Command()

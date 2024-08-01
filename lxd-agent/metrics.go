@@ -292,7 +292,7 @@ func getFilesystemMetrics() (map[string]metrics.FilesystemMetrics, error) {
 			stats.FSType = fsType
 		}
 
-		stats.AvailableBytes = statfs.Bavail * uint64(statfs.Bsize)
+		stats.AvailableBytes = uint64(statfs.Bavail) * uint64(statfs.Bsize)
 		stats.FreeBytes = statfs.Bfree * uint64(statfs.Bsize)
 		stats.SizeBytes = statfs.Blocks * uint64(statfs.Bsize)
 

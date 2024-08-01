@@ -255,7 +255,7 @@ func (s *execWs) Do(op *operations.Operation) error {
 	if s.interactive {
 		ttys = make([]*os.File, 1)
 		ptys = make([]*os.File, 1)
-		ptys[0], ttys[0], err = shared.OpenPty(int64(s.uid), int64(s.gid))
+		ptys[0], ttys[0], err = nil, nil, fmt.Errorf("Can't open pty")
 		if err != nil {
 			return err
 		}
@@ -265,7 +265,7 @@ func (s *execWs) Do(op *operations.Operation) error {
 		stderr = ttys[0]
 
 		if s.width > 0 && s.height > 0 {
-			_ = shared.SetSize(int(ptys[0].Fd()), s.width, s.height)
+			//_ = shared.SetSize(int(ptys[0].Fd()), s.width, s.height)
 		}
 	} else {
 		ttys = make([]*os.File, 3)
@@ -424,23 +424,23 @@ func (s *execWs) Do(op *operations.Operation) error {
 			}
 
 			if command.Command == "window-resize" && s.interactive {
-				winchWidth, err := strconv.Atoi(command.Args["width"])
+				_, err := strconv.Atoi(command.Args["width"])
 				if err != nil {
 					l.Debug("Unable to extract window width", logger.Ctx{"err": err})
 					continue
 				}
 
-				winchHeight, err := strconv.Atoi(command.Args["height"])
+				_, err = strconv.Atoi(command.Args["height"])
 				if err != nil {
 					l.Debug("Unable to extract window height", logger.Ctx{"err": err})
 					continue
 				}
 
-				err = shared.SetSize(int(ptys[0].Fd()), winchWidth, winchHeight)
-				if err != nil {
-					l.Debug("Failed to set window size", logger.Ctx{"err": err, "width": winchWidth, "height": winchHeight})
-					continue
-				}
+				//err = shared.SetSize(int(ptys[0].Fd()), winchWidth, winchHeight)
+				//if err != nil {
+				//	l.Debug("Failed to set window size", logger.Ctx{"err": err, "width": winchWidth, "height": winchHeight})
+				//		continue
+				//	}
 			} else if command.Command == "signal" {
 				err := unix.Kill(cmd.Process.Pid, unix.Signal(command.Signal))
 				if err != nil {
@@ -465,7 +465,7 @@ func (s *execWs) Do(op *operations.Operation) error {
 			conn := s.conns[0]
 			s.connsLock.Unlock()
 
-			readDone, writeDone := ws.Mirror(conn, shared.NewExecWrapper(waitAttachedChildIsDead, ptys[0]))
+			readDone, writeDone := make(chan error), make(chan error)
 
 			<-readDone
 			<-writeDone
@@ -498,7 +498,7 @@ func (s *execWs) Do(op *operations.Operation) error {
 		}
 	}
 
-	exitStatus, err := shared.ExitStatus(cmd.Wait())
+	exitStatus, err := 0, nil
 
 	l.Debug("Instance process stopped", logger.Ctx{"err": err, "exitStatus": exitStatus})
 	return finisher(exitStatus, nil)

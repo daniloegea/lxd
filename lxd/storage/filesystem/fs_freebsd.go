@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build freebsd
+// +build freebsd
 
 package filesystem
 
@@ -51,21 +51,11 @@ func FSTypeToName(fsType int32) (string, error) {
 	// This function is needed to allow FS type constants that overflow an int32 to be overflowed without a
 	// compile error on 32bit platforms. This allows us to use any 64bit constants from the unix package on
 	// both 64bit and 32bit platforms without having to define the constant in its rolled over form on 32bit.
-	to32 := func(fsType int64) int32 {
+	_ = func(fsType int64) int32 {
 		return int32(fsType)
 	}
 
 	switch fsType {
-	case to32(unix.BTRFS_SUPER_MAGIC): // BTRFS' constant required overflowing to an int32.
-		return "btrfs", nil
-	case unix.TMPFS_MAGIC:
-		return "tmpfs", nil
-	case unix.EXT4_SUPER_MAGIC:
-		return "ext4", nil
-	case unix.XFS_SUPER_MAGIC:
-		return "xfs", nil
-	case unix.NFS_SUPER_MAGIC:
-		return "nfs", nil
 	case FilesystemSuperMagicZfs:
 		return "zfs", nil
 	}
@@ -151,7 +141,7 @@ func SyncFS(path string) error {
 	defer func() { _ = fsFile.Close() }()
 
 	// Call SyncFS.
-	return unix.Syncfs(int(fsFile.Fd()))
+	return nil
 }
 
 // PathNameEncode encodes a path string to be used as part of a file name.
@@ -176,32 +166,7 @@ type mountOption struct {
 
 // mountFlagTypes represents a list of possible mount flags.
 var mountFlagTypes = map[string]mountOption{
-	"async":         {false, unix.MS_SYNCHRONOUS},
-	"atime":         {false, unix.MS_NOATIME},
-	"bind":          {true, unix.MS_BIND},
-	"defaults":      {true, 0},
-	"dev":           {false, unix.MS_NODEV},
-	"diratime":      {false, unix.MS_NODIRATIME},
-	"dirsync":       {true, unix.MS_DIRSYNC},
-	"exec":          {false, unix.MS_NOEXEC},
-	"lazytime":      {true, unix.MS_LAZYTIME},
-	"mand":          {true, unix.MS_MANDLOCK},
-	"noatime":       {true, unix.MS_NOATIME},
-	"nodev":         {true, unix.MS_NODEV},
-	"nodiratime":    {true, unix.MS_NODIRATIME},
-	"noexec":        {true, unix.MS_NOEXEC},
-	"nomand":        {false, unix.MS_MANDLOCK},
-	"norelatime":    {false, unix.MS_RELATIME},
-	"nostrictatime": {false, unix.MS_STRICTATIME},
-	"nosuid":        {true, unix.MS_NOSUID},
-	"rbind":         {true, unix.MS_BIND | unix.MS_REC},
-	"relatime":      {true, unix.MS_RELATIME},
-	"remount":       {true, unix.MS_REMOUNT},
-	"ro":            {true, unix.MS_RDONLY},
-	"rw":            {false, unix.MS_RDONLY},
-	"strictatime":   {true, unix.MS_STRICTATIME},
-	"suid":          {false, unix.MS_NOSUID},
-	"sync":          {true, unix.MS_SYNCHRONOUS},
+	"defaults": {true, 0},
 }
 
 // ResolveMountOptions resolves the provided mount options.
@@ -228,32 +193,5 @@ func ResolveMountOptions(options []string) (uintptr, string) {
 
 // GetMountinfo tracks down the mount entry for the path and returns all MountInfo fields.
 func GetMountinfo(path string) ([]string, error) {
-	stat := &unix.Statx_t{}
-	err := unix.Statx(0, path, 0, 0, stat)
-	if err != nil {
-		return nil, err
-	}
-
-	f, err := os.Open("/proc/self/mountinfo")
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() { _ = f.Close() }()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		tokens := strings.Fields(line)
-		if len(tokens) < 5 {
-			continue
-		}
-
-		if tokens[0] == fmt.Sprintf("%d", stat.Mnt_id) {
-			return tokens, nil
-		}
-	}
-
 	return nil, fmt.Errorf("No mountinfo entry found")
 }
