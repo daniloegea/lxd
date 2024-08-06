@@ -248,13 +248,13 @@ func (c *cmdAgent) writeStatus(status string) error {
 			return err
 		}
 
-		termios, err := unix.IoctlGetTermios(int(vSerial.Fd()), 0x402c7413)
+		termios, err := unix.IoctlGetTermios(int(vSerial.Fd()), unix.TIOCGETA)
 		if err != nil {
 			fmt.Println("GET TERMIOS FAILED")
 			return err
 		}
 		termios.Oflag = 0
-		err = unix.IoctlSetTermios(int(vSerial.Fd()), 0x802c7414, termios)
+		err = unix.IoctlSetTermios(int(vSerial.Fd()), unix.TIOCSETA, termios)
 		if err != nil {
 			fmt.Println("SET TERMIOS FAILED")
 			return err
