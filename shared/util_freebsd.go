@@ -272,13 +272,12 @@ func GetMeminfo(field string) (int64, error) {
 func OpenPtyInDevpts(devpts_fd int, uid, gid int64) (*os.File, *os.File, error) {
 	revert := revert.New()
 	defer revert.Fail()
-	var err error
 
-	var master, slave C.int
-	C.openpty(&master, &slave, (*C.char)(C.NULL), (*C.struct_termios)(C.NULL), (*C.struct_winsize)(C.NULL))
+	ptx, pty, err := openPty()
 
-	ptx := os.NewFile(uintptr(master), "master pty")
-	pty := os.NewFile(uintptr(slave), "master pty")
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Configure both sides
 	for _, entry := range []*os.File{ptx, pty} {
@@ -331,6 +330,20 @@ func OpenPtyInDevpts(devpts_fd int, uid, gid int64) (*os.File, *os.File, error) 
 // OpenPty creates a new PTS pair, configures them and returns them.
 func OpenPty(uid, gid int64) (*os.File, *os.File, error) {
 	return OpenPtyInDevpts(-1, uid, gid)
+}
+
+func openPty() (ptx *os.File, pty *os.File, err error) {
+	var master, slave C.int
+	ret := C.openpty(&master, &slave, (*C.char)(C.NULL), (*C.struct_termios)(C.NULL), (*C.struct_winsize)(C.NULL))
+
+	if ret != 0 {
+		return nil, nil, fmt.Errorf("Failed to call native openpty()")
+	}
+
+	ptx = os.NewFile(uintptr(master), "master pty")
+	pty = os.NewFile(uintptr(slave), "slave pty")
+
+	return
 }
 
 // ExitStatus extracts the exit status from the error returned by exec.Cmd.
